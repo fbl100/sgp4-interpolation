@@ -1,0 +1,439 @@
+<title>Node Spacing Calibrator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#eef1f5; --surface:#ffffff; --surface-2:#f4f6f9; --raised:#ffffff;
+    --ink:#101720; --muted:#5b6673; --faint:#8b95a2; --line:#dbe1e9; --line-2:#e8ecf2;
+    --accent:#0e8ea3; --accent-soft:#0e8ea320;
+    --leo:#2563eb; --meo:#0f9d63; --geo:#c9770a; --heo:#d63b34;
+    --good:#0f9d63; --warn:#c9770a; --bad:#d63b34;
+    --good-bg:#0f9d6318; --warn-bg:#c9770a18; --bad-bg:#d63b3418;
+    --shadow:0 1px 2px rgba(16,23,32,.05),0 8px 24px rgba(16,23,32,.06);
+    --sans:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  :root:not([data-theme="light"]){ @media (prefers-color-scheme:dark){
+    --bg:#0b0f14; --surface:#141b23; --surface-2:#101720; --raised:#1a232d;
+    --ink:#e6edf4; --muted:#93a0ae; --faint:#697585; --line:#26313d; --line-2:#1c2530;
+    --accent:#2bd0e6; --accent-soft:#2bd0e628;
+    --leo:#63a4ff; --meo:#3fd699; --geo:#f5b23e; --heo:#f5766f;
+    --good:#3fd699; --warn:#f5b23e; --bad:#f5766f;
+    --good-bg:#3fd69922; --warn-bg:#f5b23e22; --bad-bg:#f5766f22;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0b0f14; --surface:#141b23; --surface-2:#101720; --raised:#1a232d;
+    --ink:#e6edf4; --muted:#93a0ae; --faint:#697585; --line:#26313d; --line-2:#1c2530;
+    --accent:#2bd0e6; --accent-soft:#2bd0e628;
+    --leo:#63a4ff; --meo:#3fd699; --geo:#f5b23e; --heo:#f5766f;
+    --good:#3fd699; --warn:#f5b23e; --bad:#f5766f;
+    --good-bg:#3fd69922; --warn-bg:#f5b23e22; --bad-bg:#f5766f22;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5;
+    -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:960px;margin:0 auto;padding-inline:16px;padding-block:36px 56px;}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;}
+
+  /* header */
+  .eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--accent);font-weight:600;margin:0 0 10px;}
+  h1{font-size:clamp(28px,5vw,40px);line-height:1.05;margin:0;font-weight:700;letter-spacing:-.02em;
+    text-wrap:balance;}
+  .thesis{margin:14px 0 0;max-width:60ch;color:var(--muted);font-size:16px;}
+
+  /* control */
+  .control{margin-top:26px;background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    box-shadow:var(--shadow);padding:20px 22px;display:flex;flex-wrap:wrap;align-items:center;
+    gap:20px 34px;}
+  .control .lab{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+    font-weight:600;margin-bottom:8px;}
+  .field{display:flex;align-items:baseline;gap:6px;}
+  .field input[type=number]{font-family:var(--mono);font-size:36px;font-weight:600;width:5.4ch;
+    border:none;background:transparent;color:var(--ink);padding:0;border-bottom:2px solid var(--accent);}
+  .field input[type=number]:focus{outline:none;}
+  .field .unit{font-family:var(--mono);font-size:20px;color:var(--muted);}
+  .slider-col{flex:1 1 320px;min-width:240px;}
+  input[type=range]{width:100%;accent-color:var(--accent);height:22px;}
+  .ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;
+    color:var(--faint);margin-top:2px;}
+  .presets{display:flex;gap:8px;}
+  .presets button{font-family:var(--mono);font-size:13px;color:var(--ink);background:var(--surface-2);
+    border:1px solid var(--line);border-radius:9px;padding:8px 13px;cursor:pointer;font-weight:500;}
+  .presets button:hover{border-color:var(--accent);}
+  .presets button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
+  .presets button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  /* answer */
+  .answer-lead{margin:30px 0 4px;font-size:15px;color:var(--muted);}
+  .answer-lead b{color:var(--ink);font-weight:600;}
+  .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:16px;}
+  @media (max-width:640px){.cards{grid-template-columns:1fr;}}
+  .rc{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
+    padding:20px 22px;position:relative;overflow:hidden;}
+  .rc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c);}
+  .rc-top{display:flex;align-items:baseline;gap:9px;}
+  .rc-name{font-size:19px;font-weight:700;letter-spacing:-.01em;}
+  .rc-type{font-family:var(--mono);font-size:11.5px;color:var(--faint);}
+  .rc-desc{margin-top:3px;font-size:13px;color:var(--muted);}
+  .rc-ans{margin-top:16px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+  .rc-h{font-family:var(--mono);font-size:34px;font-weight:600;letter-spacing:-.02em;line-height:1;color:var(--c);}
+  .rc-hlab{font-size:12.5px;color:var(--muted);}
+  .rc-alt{margin-top:12px;padding-top:12px;border-top:1px solid var(--line-2);font-size:13px;
+    color:var(--muted);display:flex;align-items:baseline;gap:7px;}
+  .rc-alt .g{font-family:var(--mono);font-weight:600;color:var(--accent);}
+  .rc-alt.none{color:var(--faint);}
+  .rc-alt b{color:var(--ink);font-weight:600;font-family:var(--mono);}
+
+  /* details / charts / method */
+  details.more{margin-top:26px;background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    box-shadow:var(--shadow);overflow:hidden;}
+  details.more>summary{list-style:none;cursor:pointer;padding:16px 20px;font-weight:600;font-size:14px;
+    display:flex;align-items:center;gap:9px;color:var(--ink);}
+  details.more>summary::-webkit-details-marker{display:none;}
+  details.more>summary .caret{transition:transform .18s;color:var(--muted);font-size:12px;}
+  details.more[open]>summary .caret{transform:rotate(90deg);}
+  details.more>summary .sm{font-weight:400;color:var(--muted);font-size:12.5px;}
+  .more-body{padding:0 20px 22px;}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media (max-width:720px){.charts{grid-template-columns:1fr;}}
+  .chart{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;
+    padding:14px 14px 8px;position:relative;}
+  .chart h3{margin:0 0 2px;font-size:13.5px;font-weight:600;}
+  .chart .cap{margin:0 0 6px;font-family:var(--mono);font-size:10.5px;color:var(--faint);}
+  .chart svg{width:100%;height:auto;display:block;overflow:visible;touch-action:none;}
+  .tip{position:absolute;pointer-events:none;background:var(--raised);border:1px solid var(--line);
+    border-radius:10px;box-shadow:var(--shadow);padding:9px 11px;font-family:var(--mono);font-size:11.5px;
+    min-width:150px;opacity:0;transition:opacity .08s;z-index:5;}
+  .tip .th{display:flex;justify-content:space-between;color:var(--faint);margin-bottom:6px;
+    font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;}
+  .tip .row{display:flex;align-items:center;gap:7px;margin-top:3px;}
+  .tip .row .rd{width:8px;height:8px;border-radius:2px;flex:none;}
+  .tip .row .rv{margin-left:auto;font-weight:600;}
+  .grid-line{stroke:var(--line-2);stroke-width:1;}
+  .axis-line{stroke:var(--line);stroke-width:1;}
+  .tick-txt{fill:var(--faint);font-family:var(--mono);font-size:10px;}
+  .axis-title{fill:var(--muted);font-family:var(--mono);font-size:10.5px;}
+  .series{fill:none;stroke-width:2.25;stroke-linejoin:round;stroke-linecap:round;}
+  .budget-line{stroke:var(--accent);stroke-width:1.5;stroke-dasharray:5 4;}
+  .budget-lab{fill:var(--accent);font-family:var(--mono);font-size:10.5px;font-weight:600;}
+  .cross{stroke:var(--accent);stroke-width:1;stroke-dasharray:2 3;}
+  .cross-h{fill:var(--ink);font-family:var(--mono);font-size:10.5px;font-weight:600;}
+  .legend{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:12px;}
+  .legend span{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);}
+  .legend .ld{width:14px;height:3px;border-radius:2px;}
+  .prose{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media (max-width:640px){.prose{grid-template-columns:1fr;}}
+  .note h4{margin:0 0 8px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);}
+  .note p{margin:0 0 10px;font-size:13.5px;color:var(--muted);}
+  .note p:last-child{margin-bottom:0;}
+  .note b{color:var(--ink);font-weight:600;}
+  .eq{font-family:var(--mono);font-size:12.5px;color:var(--ink);background:var(--surface);
+    border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin:2px 0 12px;overflow-x:auto;}
+  .foot{margin-top:26px;color:var(--faint);font-size:12px;font-family:var(--mono);text-align:center;
+    line-height:1.7;}
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Ephemeris interpolation · SGP4 truth</p>
+    <h1>Node Spacing Calibrator</h1>
+    <p class="thesis">You have satellite positions stored every so often, and you rebuild the path
+      between them with a smooth curve. <b style="color:var(--ink);font-weight:600">How far apart can
+      those stored points be</b> before the reconstruction drifts past the error you can tolerate?
+      Set your budget below.</p>
+  </header>
+
+  <section class="control" aria-label="Error budget control">
+    <div>
+      <div class="lab">Error you can accept</div>
+      <div class="field">
+        <input id="budget" type="number" min="0.001" max="200" step="0.01" value="1" aria-label="Acceptable position error in meters">
+        <span class="unit">m</span>
+      </div>
+    </div>
+    <div class="slider-col">
+      <div class="lab">Drag to set (log scale)</div>
+      <input id="slider" type="range" min="0" max="1000" value="500" aria-label="Error budget slider">
+      <div class="ticks"><span>1 mm</span><span>1 cm</span><span>0.1 m</span><span>1 m</span><span>10 m</span><span>100 m</span></div>
+    </div>
+    <div>
+      <div class="lab">Presets</div>
+      <div class="presets" id="presets">
+        <button data-b="0.1">0.1 m</button>
+        <button data-b="1" aria-pressed="true">1 m</button>
+        <button data-b="10">10 m</button>
+      </div>
+    </div>
+  </section>
+
+  <p class="answer-lead">Coarsest spacing that keeps the worst-case error within
+    <b id="budget-echo" style="color:var(--accent)">1 m</b>, for four representative orbits:</p>
+  <section class="cards" id="cards"></section>
+
+  <details class="more" id="details">
+    <summary><span class="caret">▶</span> Show the error-vs-spacing curves &amp; method
+      <span class="sm">— how the numbers are derived, and a second way to buy coarser spacing</span></summary>
+    <div class="more-body">
+      <div class="charts">
+        <div class="chart" id="chart-raw"><h3>As stored (raw velocity)</h3><p class="cap">SGP4's reported velocity at each node</p></div>
+        <div class="chart" id="chart-diff"><h3>With smoothing (differentiated velocity)</h3><p class="cap">node velocity recomputed from position, dt = 0.01 s</p></div>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div class="prose">
+        <div class="note">
+          <h4>What's plotted</h4>
+          <p>Each line is the worst-case position error when you reconstruct the orbit with node
+            points spaced <em>h</em> seconds apart. Find your budget on the vertical axis, slide right
+            to a line, drop down — that spacing is the card's answer. Below ~90 s the four orbits
+            spread out by <b>five orders of magnitude</b>: the same spacing that's overkill for a
+            navigation satellite is far too coarse for a fast, stretched Molniya orbit.</p>
+        </div>
+        <div class="note">
+          <h4>The two velocities</h4>
+          <p>The propagator reports a velocity at each point, but it isn't exactly the slope of the
+            reported positions. Feeding that raw velocity into the curve adds an error that grows with
+            spacing. Recomputing the slope from the positions (a <b>differentiation</b> step) removes it:</p>
+          <div class="eq">error(h) ≈ curvature·h⁴/384  +  velocity-gap·h</div>
+          <p>Where the second term dominates (navigation & geostationary orbits), differentiating lets
+            you space nodes much farther apart for the same budget. Where the first term already rules
+            (low orbit), it barely helps — only closer nodes do.</p>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <p class="foot" id="foot"></p>
+</div>
+
+<script>
+const DATA={"meta":{"dt":0.01,"source":"Celestrak GP/TLE, fetched 2026-08-06"},"h":[1.0,1.1015,1.2133,1.3365,1.4721,1.6215,1.7861,1.9674,2.1671,2.3871,2.6294,2.8963,3.1902,3.514,3.8707,4.2636,4.6964,5.1731,5.6981,6.2765,6.9136,7.6153,8.3883,9.2397,10.178,11.211,12.348,13.602,14.982,16.503,18.178,20.023,22.056,24.294,26.761,29.477,30.0,32.469,35.764,39.394,43.393,47.797,52.649,57.993,60.0,63.879,70.363,77.505,85.372,94.037,103.58,114.1,120.0,125.68,138.43,152.48,167.96,185.01,203.79,224.47,247.26,272.36,300.0],"regimes":[{"regime":"LEO","name":"ISS (ZARYA)","norad":25544,"period_min":92.942,"ecc":0.0007216,"raw":[0.0019326,0.0021288,0.0023449,0.002583,0.0028451,0.0031338,0.0034519,0.0038023,0.0041883,0.0046136,0.0050819,0.0055979,0.006166,0.0067921,0.0074818,0.0082416,0.0090788,0.010001,0.011018,0.012138,0.013373,0.014734,0.016236,0.017892,0.019721,0.021742,0.023977,0.026453,0.0292,0.032257,0.03567,0.039501,0.04383,0.048771,0.054485,0.061217,0.062579,0.069347,0.079474,0.094171,0.11969,0.16448,0.2328,0.3362,0.38308,0.48926,0.71736,1.0528,1.5462,2.272,3.3398,4.9111,6.0063,7.2232,10.626,15.633,23.002,33.846,49.805,73.289,107.85,158.7,233.51],"diff":[3.1242e-07,4.0202e-07,4.4256e-07,4.6265e-07,5.2671e-07,6.1519e-07,7.2141e-07,8.4251e-07,9.8797e-07,1.2884e-06,6.904e-06,6.2812e-06,5.6329e-06,5.6559e-06,7.403e-06,1.0513e-05,1.4622e-05,2.0934e-05,3.0723e-05,4.4939e-05,6.6097e-05,9.7261e-05,0.00014317,0.00021064,0.00030997,0.00045648,0.00067166,0.00098856,0.0014555,0.0021426,0.0031536,0.0046422,0.0068342,0.010061,0.01481,0.021802,0.023391,0.032094,0.047245,0.06955,0.10238,0.15072,0.22187,0.32662,0.37423,0.4808,0.70778,1.0419,1.5338,2.2578,3.3236,4.8924,5.9862,7.2017,10.601,15.604,22.968,33.807,49.76,73.237,107.79,158.63,233.43]},{"regime":"MEO","name":"GPS BIIR-5 (PRN 22)","norad":26407,"period_min":718.0,"ecc":0.011985,"raw":[0.000906,0.00099802,0.0010992,0.0012109,0.0013337,0.0014691,0.0016182,0.0017825,0.0019634,0.0021627,0.0023822,0.002624,0.0028903,0.0031837,0.0035069,0.0038628,0.004255,0.0046868,0.0051625,0.0056865,0.0062637,0.0068995,0.0075998,0.0083712,0.0092209,0.010157,0.011188,0.012323,0.013574,0.014952,0.01647,0.018142,0.019983,0.022012,0.024247,0.026709,0.027183,0.02942,0.032408,0.0357,0.039326,0.043323,0.047729,0.052585,0.05441,0.057939,0.063844,0.07036,0.077554,0.085504,0.094299,0.10404,0.10955,0.11487,0.12692,0.14042,0.15561,0.17288,0.19275,0.21604,0.244,0.27867,0.32815],"diff":[2.0049e-06,2.1166e-06,2.7384e-06,2.8191e-06,3.045e-06,2.9871e-06,3.4365e-06,2.5742e-05,2.3634e-05,2.0411e-05,1.7733e-05,1.556e-05,1.4308e-05,1.5657e-05,1.9328e-05,1.905e-05,2.0039e-05,2.2999e-05,2.4128e-05,2.6631e-05,2.564e-05,2.6769e-05,2.7907e-05,2.7498e-05,3.0369e-05,3.0037e-05,3.1726e-05,3.1674e-05,3.2903e-05,3.1706e-05,3.3366e-05,4.4824e-05,4.4143e-05,4.5068e-05,5.2302e-05,6.6799e-05,6.9241e-05,7.5368e-05,0.00010007,0.00011359,0.00014341,0.0001898,0.00027214,0.00039932,0.0004581,0.00057761,0.00084608,0.001247,0.0018286,0.002688,0.0039562,0.0058143,0.0071132,0.0085571,0.012598,0.018529,0.027281,0.04015,0.059104,0.087006,0.12808,0.18853,0.27752]},{"regime":"GEO","name":"TDRS 3","norad":19548,"period_min":1436.1,"ecc":0.0037197,"raw":[0.0052754,0.0058108,0.0064007,0.0070506,0.0077659,0.0085541,0.0094224,0.010379,0.011432,0.012593,0.013871,0.015279,0.01683,0.018538,0.020419,0.022492,0.024775,0.02729,0.03006,0.033111,0.036472,0.040174,0.044252,0.048743,0.053691,0.059141,0.065143,0.071755,0.079039,0.087062,0.095898,0.10563,0.11635,0.12816,0.14117,0.1555,0.15826,0.17129,0.18867,0.20783,0.22892,0.25216,0.27775,0.30595,0.31653,0.337,0.37121,0.40889,0.4504,0.49612,0.54648,0.60195,0.6331,0.66306,0.73037,0.80452,0.88619,0.97617,1.0753,1.1845,1.3047,1.4372,1.5832],"diff":[1.9888e-06,2.1848e-06,2.2286e-06,2.8207e-06,3.1704e-06,3.8346e-06,3.9561e-06,3.5027e-06,3.7075e-06,4.5037e-06,4.9742e-06,6.1173e-06,6.6299e-06,7.0401e-06,7.6364e-06,8.5632e-06,8.0071e-06,1.1797e-05,4.3025e-05,3.7398e-05,4.1234e-05,3.0434e-05,2.1899e-05,4.1739e-05,3.8338e-05,3.3621e-05,2.9135e-05,0.004201,4.3565e-05,3.8645e-05,4.939e-05,4.1227e-05,4.7657e-05,5.8002e-05,5.979e-05,6.1e-05,5.4261e-05,6.4975e-05,6.4028e-05,7.9618e-05,8.2452e-05,9.0061e-05,0.00011034,0.00012931,0.00012706,0.0001495,0.00014823,0.00017627,0.00024636,0.00030219,0.00041224,0.00057309,0.00069278,0.00082341,0.0012041,0.0017545,0.002576,0.0037667,0.00553,0.0081403,0.011949,0.017589,0.025871]},{"regime":"HEO","name":"MOLNIYA 3-50","norad":25847,"period_min":717.71,"ecc":0.67582,"raw":[0.10619,0.11696,0.12884,0.14192,0.15632,0.17218,0.18966,0.20891,0.23012,0.25348,0.27921,0.30755,0.33876,0.37315,0.41103,0.45275,0.49871,0.54933,0.60509,0.66651,0.73416,0.80869,0.8908,0.98124,1.0809,1.1906,1.3116,1.4448,1.5916,1.7533,1.9315,2.128,2.3445,2.5833,2.8466,3.1371,3.1931,3.4577,3.8118,4.2032,4.6362,5.1158,5.6479,6.2395,6.4633,6.8989,7.6364,8.4649,9.4006,10.465,11.685,13.101,13.934,14.769,16.771,19.228,22.674,27.449,35.669,51.245,77.745,118.87,180.43],"diff":[9.8084e-06,1.1277e-05,1.2109e-05,1.3915e-05,1.5144e-05,1.448e-05,1.625e-05,1.6682e-05,1.764e-05,0.00034499,1.8972e-05,1.8694e-05,1.8971e-05,1.9238e-05,1.9321e-05,2.1037e-05,2.0076e-05,0.00074049,3.1203e-05,4.1883e-05,6.3799e-05,9.3231e-05,0.00013042,0.00019154,0.00028098,0.00041228,0.00060626,0.00089201,0.0013116,0.001931,0.0028432,0.0041831,0.0061595,0.0090619,0.013348,0.019649,0.021083,0.028926,0.042582,0.062683,0.092274,0.13583,0.19995,0.29432,0.33722,0.43322,0.63765,0.93848,1.3812,2.0325,2.9919,4.4038,5.3878,6.4811,9.537,14.032,20.64,30.355,44.657,65.672,96.534,141.84,208.45]}]};
+
+const REGMETA={
+  LEO:{type:'Low Earth · ~90 min',   desc:'ISS, Starlink, most imaging satellites'},
+  MEO:{type:'Medium Earth · ~12 h',  desc:'GPS and other navigation satellites'},
+  GEO:{type:'Geostationary · 24 h',  desc:'TV, weather & comms, fixed over the equator'},
+  HEO:{type:'Highly elliptical · ~12 h', desc:'Molniya orbit — dives low, swings far out'},
+};
+const NS='http://www.w3.org/2000/svg';
+const REGCOL={LEO:'--leo',MEO:'--meo',GEO:'--geo',HEO:'--heo'};
+const H=DATA.h, HMIN=H[0], HMAX=H[H.length-1];
+const YMIN=1e-5, YMAX=1e3;
+const cvar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+// ---- formatting -----------------------------------------------------------
+function fmtH(h){
+  if(h==null) return '< 1 s';
+  if(h>=HMAX) return '300 s+';
+  if(h<10) return h.toFixed(1)+' s';
+  return Math.round(h)+' s';
+}
+function fmtErr(e){
+  if(e>=1) return e.toFixed(2)+' m';
+  if(e>=0.001) return e.toFixed(3)+' m';
+  if(e>=1e-6) return (e*1000).toPrecision(2)+' mm';
+  return (e*1e6).toPrecision(2)+' µm';
+}
+function fmtBudget(b){
+  if(b>=1) return (Number.isInteger(b)?b:b.toFixed(2))+' m';
+  if(b>=0.01) return (b*100)+' cm';
+  return (b*1000).toPrecision(3)+' mm';
+}
+function axisLabel(v){
+  if(v>=1000) return (v/1000)+' km';
+  if(v>=1) return v+' m';
+  if(v>=1e-3) return (v*1000)+' mm';
+  return (v*1e6)+' µm';
+}
+
+// ---- log-log helpers ------------------------------------------------------
+const lg=Math.log10;
+function crossing(arr,b){                    // coarsest h with err<=b
+  if(arr[0]>b) return null;
+  let last=-1;
+  for(let i=0;i<arr.length;i++) if(arr[i]<=b) last=i;
+  if(last===arr.length-1) return HMAX;
+  const i=last;
+  const t=(lg(b)-lg(arr[i]))/(lg(arr[i+1])-lg(arr[i]));
+  return Math.pow(10, lg(H[i])+t*(lg(H[i+1])-lg(H[i])));
+}
+function errAt(arr,h){
+  if(h<=HMIN) return arr[0];
+  if(h>=HMAX) return arr[arr.length-1];
+  let i=0; while(i<H.length-1 && H[i+1]<h) i++;
+  const t=(lg(h)-lg(H[i]))/(lg(H[i+1])-lg(H[i]));
+  return Math.pow(10, lg(arr[i])+t*(lg(arr[i+1])-lg(arr[i])));
+}
+
+// ---- answer cards ---------------------------------------------------------
+function renderCards(b){
+  const wrap=document.getElementById('cards'); wrap.innerHTML='';
+  DATA.regimes.forEach(r=>{
+    const meta=REGMETA[r.regime];
+    const hr=crossing(r.raw,b), hd=crossing(r.diff,b);
+    let alt;
+    if(hr==null){
+      alt='<span>Cubic Hermite can’t reach this budget here — you’d need points finer than 1 s.</span>';
+    }else if(hr>=HMAX){
+      alt='<span class="none">Comfortable at any tested spacing (up to 300 s).</span>';
+    }else if(hd && (hd>=HMAX || hd/hr>=1.15)){
+      const g = hd>=HMAX ? '≥'+(HMAX/hr).toFixed(0)+'×' : (hd/hr).toFixed(1)+'×';
+      alt='<span>Smoothing node velocities → <b>'+fmtH(hd)+'</b> <span class="g">('+g+' coarser)</span></span>';
+    }else{
+      alt='<span class="none">Smoothing node velocities barely helps here.</span>';
+    }
+    const el=document.createElement('div');
+    el.className='rc'; el.style.setProperty('--c',cvar(REGCOL[r.regime]));
+    el.innerHTML=
+      '<div class="rc-top"><span class="rc-name">'+r.regime+'</span><span class="rc-type">'+meta.type+'</span></div>'+
+      '<div class="rc-desc">'+meta.desc+'</div>'+
+      '<div class="rc-ans"><span class="rc-h">'+fmtH(hr)+'</span><span class="rc-hlab">max spacing between stored points</span></div>'+
+      '<div class="rc-alt'+(alt.indexOf('none')>-1?' none':'')+'">'+alt+'</div>';
+    wrap.appendChild(el);
+  });
+}
+
+// ---- chart ----------------------------------------------------------------
+const W=520,Hh=360,M={l:56,r:14,t:14,b:38};
+const PW=W-M.l-M.r, PH=Hh-M.t-M.b;
+const xToPx=h=>M.l+(lg(h)-lg(HMIN))/(lg(HMAX)-lg(HMIN))*PW;
+const yToPx=e=>{const c=Math.min(YMAX,Math.max(YMIN,e));
+  return M.t+(lg(YMAX)-lg(c))/(lg(YMAX)-lg(YMIN))*PH;};
+const pxToX=px=>Math.pow(10, lg(HMIN)+(px-M.l)/PW*(lg(HMAX)-lg(HMIN)));
+const mk=(tag,at)=>{const e=document.createElementNS(NS,tag);for(const k in at)e.setAttribute(k,at[k]);return e;};
+
+function buildChart(container,mode){
+  const svg=mk('svg',{viewBox:`0 0 ${W} ${Hh}`,role:'img'});
+  for(let ex=lg(YMIN);ex<=lg(YMAX)+1e-9;ex++){
+    const v=Math.pow(10,ex), y=yToPx(v);
+    svg.appendChild(mk('line',{class:ex===0?'axis-line':'grid-line',x1:M.l,y1:y,x2:W-M.r,y2:y}));
+    const t=mk('text',{class:'tick-txt',x:M.l-8,y:y+3,'text-anchor':'end'});
+    t.textContent=axisLabel(v); svg.appendChild(t);
+  }
+  [1,3,10,30,100,300].forEach(h=>{
+    const x=xToPx(h);
+    svg.appendChild(mk('line',{class:'grid-line',x1:x,y1:M.t,x2:x,y2:M.t+PH}));
+    const t=mk('text',{class:'tick-txt',x:x,y:M.t+PH+15,'text-anchor':'middle'});
+    t.textContent=h; svg.appendChild(t);
+  });
+  const xt=mk('text',{class:'axis-title',x:M.l+PW/2,y:Hh-2,'text-anchor':'middle'});
+  xt.textContent='Spacing between stored points (s)'; svg.appendChild(xt);
+  DATA.regimes.forEach(r=>{
+    const pts=r[mode].map((e,i)=>`${xToPx(H[i]).toFixed(1)},${yToPx(e).toFixed(1)}`).join(' ');
+    svg.appendChild(mk('polyline',{class:'series',points:pts,stroke:cvar(REGCOL[r.regime])}));
+  });
+  const bLine=mk('line',{class:'budget-line',x1:M.l,x2:W-M.r,y1:0,y2:0});
+  const bLab=mk('text',{class:'budget-lab',x:M.l+4,y:0,'text-anchor':'start'});
+  svg.appendChild(bLine); svg.appendChild(bLab);
+  const cg=mk('g',{}); svg.appendChild(cg);
+  const hoverLine=mk('line',{class:'cross',x1:0,x2:0,y1:M.t,y2:M.t+PH,opacity:0});
+  const hoverDots=mk('g',{}); svg.appendChild(hoverLine); svg.appendChild(hoverDots);
+  const overlay=mk('rect',{x:M.l,y:M.t,width:PW,height:PH,fill:'transparent',style:'cursor:crosshair'});
+  svg.appendChild(overlay);
+  container.appendChild(svg);
+  const tip=document.createElement('div'); tip.className='tip'; container.appendChild(tip);
+
+  function hover(evt){
+    const r=svg.getBoundingClientRect();
+    const cx=evt.touches?evt.touches[0].clientX:evt.clientX;
+    const px=(cx-r.left)/r.width*W;
+    if(px<M.l||px>W-M.r){leave();return;}
+    const h=Math.min(HMAX,Math.max(HMIN,pxToX(px)));
+    const x=xToPx(h);
+    hoverLine.setAttribute('x1',x); hoverLine.setAttribute('x2',x); hoverLine.setAttribute('opacity',1);
+    hoverDots.innerHTML='';
+    let rows='';
+    DATA.regimes.forEach(rg=>{
+      const e=errAt(rg[mode],h), col=cvar(REGCOL[rg.regime]);
+      hoverDots.appendChild(mk('circle',{cx:x,cy:yToPx(e),r:3.5,fill:col,stroke:cvar('--surface-2'),'stroke-width':1.5}));
+      rows+=`<div class="row"><span class="rd" style="background:${col}"></span>${rg.regime}<span class="rv">${fmtErr(e)}</span></div>`;
+    });
+    tip.innerHTML=`<div class="th"><span>spacing ${h<10?h.toFixed(1):Math.round(h)} s</span></div>${rows}`;
+    tip.style.opacity=1;
+    const tw=tip.offsetWidth, contW=container.clientWidth;
+    let left=(x/W)*contW+14; if(left+tw>contW-6) left=(x/W)*contW-tw-14;
+    tip.style.left=Math.max(6,left)+'px'; tip.style.top=(M.t/Hh)*r.height+8+'px';
+  }
+  function leave(){hoverLine.setAttribute('opacity',0);hoverDots.innerHTML='';tip.style.opacity=0;}
+  overlay.addEventListener('mousemove',hover);
+  overlay.addEventListener('mouseleave',leave);
+  overlay.addEventListener('touchstart',hover,{passive:true});
+  overlay.addEventListener('touchmove',hover,{passive:true});
+  overlay.addEventListener('touchend',leave);
+  return {mode,bLine,bLab,cg};
+}
+
+function updateChart(ch,b){
+  const inRange=(b>=YMIN&&b<=YMAX);
+  const y=yToPx(b);
+  ch.bLine.setAttribute('opacity',inRange?1:0);
+  ch.bLab.setAttribute('opacity',inRange?1:0);
+  ch.bLine.setAttribute('y1',y); ch.bLine.setAttribute('y2',y);
+  ch.bLab.setAttribute('y',y-5); ch.bLab.textContent='budget '+fmtBudget(b);
+  ch.cg.innerHTML='';
+  const cr=[];
+  DATA.regimes.forEach((r,idx)=>{
+    const h=crossing(r[ch.mode],b);
+    if(h==null||!inRange) return;
+    cr.push({idx,h,hc:Math.min(HMAX,h),x:xToPx(Math.min(HMAX,h)),col:cvar(REGCOL[r.regime])});
+  });
+  cr.forEach(c=>{
+    ch.cg.appendChild(mk('line',{class:'cross',x1:c.x,y1:y,x2:c.x,y2:M.t+PH,stroke:c.col}));
+    ch.cg.appendChild(mk('circle',{cx:c.x,cy:y,r:4.5,fill:c.col,stroke:cvar('--surface-2'),'stroke-width':1.6}));
+    if(c.h<HMAX){
+      const near=cr.filter(o=>o!==c && Math.abs(o.x-c.x)<40 && o.x<=c.x).length;
+      const t=mk('text',{class:'cross-h',x:c.x,y:M.t+PH-6-near*14,'text-anchor':c.x>W-70?'end':'middle',fill:c.col});
+      t.textContent=(c.hc<10?c.hc.toFixed(1):Math.round(c.hc))+'s'; ch.cg.appendChild(t);
+    }
+  });
+}
+
+function buildLegend(){
+  const L=document.getElementById('legend'); L.innerHTML='';
+  DATA.regimes.forEach(r=>{
+    const s=document.createElement('span');
+    s.innerHTML=`<span class="ld" style="background:${cvar(REGCOL[r.regime])}"></span>${r.regime} — ${r.name}`;
+    L.appendChild(s);
+  });
+}
+
+// ---- wiring ---------------------------------------------------------------
+let charts=[buildChart(document.getElementById('chart-raw'),'raw'),
+            buildChart(document.getElementById('chart-diff'),'diff')];
+buildLegend();
+
+const numEl=document.getElementById('budget'), slEl=document.getElementById('slider'),
+      echo=document.getElementById('budget-echo'), presets=document.getElementById('presets');
+const SL_MIN=lg(0.001), SL_MAX=lg(100);
+const bToSlider=b=>Math.round((lg(b)-SL_MIN)/(SL_MAX-SL_MIN)*1000);
+const sliderToB=s=>Math.pow(10, SL_MIN+(s/1000)*(SL_MAX-SL_MIN));
+
+function apply(b,src){
+  b=Math.min(200,Math.max(0.001,b));
+  if(src!=='num') numEl.value=(b>=1?+b.toFixed(2):+b.toPrecision(3));
+  if(src!=='slider') slEl.value=bToSlider(b);
+  echo.textContent=fmtBudget(b);
+  renderCards(b);
+  charts.forEach(c=>updateChart(c,b));
+  [...presets.children].forEach(btn=>btn.setAttribute('aria-pressed', String(+btn.dataset.b===b)));
+}
+numEl.addEventListener('input',()=>{const v=parseFloat(numEl.value); if(!isNaN(v)&&v>0) apply(v,'num');});
+slEl.addEventListener('input',()=>apply(sliderToB(+slEl.value),'slider'));
+presets.addEventListener('click',e=>{const b=e.target.dataset&&e.target.dataset.b; if(b) apply(+b,'preset');});
+
+document.getElementById('foot').textContent=
+  `Four real satellites · truth = densely-sampled SGP4 · ${DATA.meta.source} · every value validated against the full report`;
+
+apply(1,'init');
+matchMedia('(prefers-color-scheme:dark)').addEventListener?.('change',()=>{
+  document.getElementById('chart-raw').innerHTML='<h3>As stored (raw velocity)</h3><p class="cap">SGP4’s reported velocity at each node</p>';
+  document.getElementById('chart-diff').innerHTML='<h3>With smoothing (differentiated velocity)</h3><p class="cap">node velocity recomputed from position, dt = 0.01 s</p>';
+  charts=[buildChart(document.getElementById('chart-raw'),'raw'),
+          buildChart(document.getElementById('chart-diff'),'diff')];
+  buildLegend();
+  apply(parseFloat(numEl.value)||1,'init');
+});
+</script>
